@@ -18,8 +18,8 @@ class Base(DeclarativeBase):
 
 
 engine = create_async_engine(
-    # MySQL async URL (aiomysql 드라이버)
-    url=db_settings.MYSQL_URL,  # 예: "mysql+aiomysql://test:test@host:3306/poc"
+    # MySQL async URL (asyncmy 드라이버)
+    url=db_settings.MYSQL_URL,  # 예: "mysql+asyncmy://test:test@host:3306/poc"
     # === Connection Pool 설정 ===
     pool_size=10,  # 기본 풀 크기: 10개 연결 유지
     max_overflow=10,  # 최대 증가: 10개 (총 20개까지 가능)

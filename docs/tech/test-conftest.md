@@ -588,7 +588,7 @@ def setup_test_env():
     """테스트 환경 변수 설정 (모든 테스트 실행 전 자동 실행)"""
     import os
     os.environ["ENVIRONMENT"] = "test"
-    os.environ["DATABASE_URL"] = "mysql+aiomysql://test:test@localhost:3306/test_db"
+    os.environ["DATABASE_URL"] = "mysql+asyncmy://test:test@localhost:3306/test_db"
     yield
     # Teardown (필요시)
 
@@ -1100,7 +1100,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: mysql+aiomysql://root:root@localhost:3306/test_db
+          DATABASE_URL: mysql+asyncmy://root:root@localhost:3306/test_db
         run: |
           uv run pytest \
             --cov=app \

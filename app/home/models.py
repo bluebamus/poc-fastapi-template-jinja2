@@ -1,288 +1,228 @@
-from datetime import datetime
-from enum import Enum
-from uuid import UUID, uuid4
+import uuid
 
-from pydantic import EmailStr
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import Column, Field, Relationship, SQLModel, select
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    PrimaryKeyConstraint,
+    String,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, backref, mapped_column, relationship
+from starlette.authentication import BaseUser
+
+from app.database.session import Base
+
+"""
+import uuid
+from pydantic import BaseModel
+from starlette.authentication import BaseUser
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from app.core.database import Base
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Numeric,
+    Table,
+    Index,
+    UniqueConstraint,
+    CheckConstraint,
+    text,
+    func,
+    PrimaryKeyConstraint,
+    Enum,
+)
+from app.utils.authentication import generate_password_hash, check_password_hash
+from sqlalchemy.orm import Mapped, mapped_column, relationship, DynamicMapped, backref
+from sqlalchemy.ext.mutable import MutableDict
+"""
 
 
-class TagName(str, Enum):
-    EXPRESS = "express"
-    STANDARD = "standard"
-    FRAGILE = "fragile"
-    HEAVY = "heavy"
-    INTERNATIONAL = "international"
-    DOMESTIC = "domestic"
-    TEMPERATURE_CONTROLLED = "temperature_controlled"
-    GIFT = "gift"
-    RETURN = "return"
-    DOCUMENTS = "documents"
-
-    async def tag(self, session: AsyncSession) -> "Tag":
-        return await session.scalar(select(Tag).where(Tag.name == self.value))
-
-
-class ShipmentStatus(str, Enum):
-    placed = "placed"
-    in_transit = "in_transit"
-    out_for_delivery = "out_for_delivery"
-    delivered = "delivered"
-    cancelled = "cancelled"
-
-
-class ShipmentTag(SQLModel, table=True):
-    __tablename__ = "shipment_tag"
-
-    shipment_id: UUID = Field(
-        foreign_key="shipment.id",
+class UUIDMixin:
+    id = Column(
+        UUID(as_uuid=True),
         primary_key=True,
-    )
-    tag_id: UUID = Field(
-        foreign_key="tag.id",
-        primary_key=True,
-    )
-
-
-class Tag(SQLModel, table=True):
-    __tablename__ = "tag"
-
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
-    )
-    name: TagName
-    instruction: str
-
-    shipments: list["Shipment"] = Relationship(
-        back_populates="tags",
-        link_model=ShipmentTag,
-        sa_relationship_kwargs={"lazy": "immediate"},
+        default=uuid.uuid4,
+        unique=True,
+        nullable=False,
     )
 
 
-class Shipment(SQLModel, table=True):
-    __tablename__ = "shipment"
+class User(Base, BaseUser):
+    __tablename__ = "users"
 
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, nullable=False, autoincrement=True
     )
-    created_at: datetime = Field(
-        sa_column=Column(
-            postgresql.TIMESTAMP,
-            default=datetime.now,
-        )
+    username: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
     )
-
-    client_contact_email: EmailStr
-    client_contact_phone: str | None
-
-    content: str
-    weight: float = Field(le=25)
-    destination: int
-    estimated_delivery: datetime | None
-
-    timeline: list["ShipmentEvent"] = Relationship(
-        back_populates="shipment",
-        sa_relationship_kwargs={"lazy": "selectin"},
+    email: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
     )
-
-    seller_id: UUID = Field(foreign_key="seller.id")
-    seller: "Seller" = Relationship(
-        back_populates="shipments",
-        sa_relationship_kwargs={"lazy": "selectin"},
+    hashed_password: Mapped[str] = mapped_column(String(60), nullable=False)
+    # age_level 컬럼을 Enum으로 정의
+    age_level_choices = ["10", "20", "30", "40", "50", "60", "70", "80"]
+    age_level: Mapped[str] = mapped_column(
+        Enum(*age_level_choices, name="age_level_enum"),
+        nullable=False,
+        default="10",
     )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
 
-    delivery_partner_id: UUID = Field(foreign_key="delivery_partner.id")
-    delivery_partner: "DeliveryPartner" = Relationship(
-        back_populates="shipments",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
+    # One-to-many relationship with Post (DynamicMapped + lazy="dynamic")
+    posts_user: Mapped[list["Post"]] = relationship("Post", back_populates="user_posts")
 
-    review: "Review" = Relationship(
-        back_populates="shipment",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
-
-    tags: list[Tag] = Relationship(
-        back_populates="shipments",
-        link_model=ShipmentTag,
-        sa_relationship_kwargs={"lazy": "immediate"},
-    )
-
-    @property
-    def status(self):
-        return self.timeline[-1].status if len(self.timeline) > 0 else None
-
-
-class ShipmentEvent(SQLModel, table=True):
-    __tablename__ = "shipment_event"
-
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
-    )
-    created_at: datetime = Field(
-        sa_column=Column(
-            postgresql.TIMESTAMP,
-            default=datetime.now,
-        )
-    )
-
-    location: int
-    status: ShipmentStatus
-    description: str | None = Field(default=None)
-
-    shipment_id: UUID = Field(foreign_key="shipment.id")
-    shipment: Shipment = Relationship(
-        back_populates="timeline",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
-
-
-class User(SQLModel):
-    name: str
-
-    email: EmailStr
-    email_verified: bool = Field(default=False)
-    password_hash: str = Field(exclude=True)
-
-
-class Seller(User, table=True):
-    __tablename__ = "seller"
-
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
-    )
-    created_at: datetime = Field(
-        sa_column=Column(
-            postgresql.TIMESTAMP,
-            default=datetime.now,
-        )
-    )
-
-    address: str
-    zip_code: int
-
-    shipments: list[Shipment] = Relationship(
-        back_populates="seller",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
-
-
-class ServicableLocation(SQLModel, table=True):
-    __tablename__ = "servicable_location"
-
-    partner_id: UUID = Field(
-        foreign_key="delivery_partner.id",
-        primary_key=True,
-    )
-    location_id: int = Field(
-        foreign_key="location.zip_code",
-        primary_key=True,
-    )
-
-
-class DeliveryPartner(User, table=True):
-    __tablename__ = "delivery_partner"
-
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
-    )
-    created_at: datetime = Field(
-        sa_column=Column(
-            postgresql.TIMESTAMP,
-            default=datetime.now,
-        )
-    )
-
-    # serviceable_zip_codes: list[int] = Field(
-    #     sa_column=Column(ARRAY(INTEGER)),
+    # # Many-to-many relationship with Group
+    # user_groups: DynamicMapped["UserGroupAssociation"] = relationship(
+    #     "UserGroupAssociation", back_populates="user", lazy="dynamic"
     # )
-    servicable_locations: list["Location"] = Relationship(
-        back_populates="delivery_partners",
-        link_model=ServicableLocation,
-        sa_relationship_kwargs={"lazy": "immediate"},
+    # n:m 관계 (Group) – 최적의 lazy 옵션: selectin
+    group_user: Mapped[list["Group"]] = relationship(
+        "Group",
+        secondary="user_group_association",
+        back_populates="user_group",
+        lazy="selectin",
     )
-    max_handling_capacity: int
 
-    shipments: list[Shipment] = Relationship(
-        back_populates="delivery_partner",
-        sa_relationship_kwargs={"lazy": "selectin"},
-    )
+    def __repr__(self) -> str:
+        return f"id={self.id}, username={self.username}"
 
     @property
-    def active_shipments(self):
-        return [
-            shipment
-            for shipment in self.shipments
-            if shipment.status != ShipmentStatus.delivered
-            or shipment.status != ShipmentStatus.cancelled
-        ]
+    def is_authenticated(self) -> bool:
+        return self.is_active
 
     @property
-    def current_handling_capacity(self):
-        return self.max_handling_capacity - len(self.active_shipments)
+    def display_name(self) -> str:
+        return self.username
+
+    @property
+    def identity(self) -> str:
+        return self.username
 
 
-class Location(SQLModel, table=True):
-    __tablename__ = "location"
+# 1:1 Relationship - User Profile
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
 
-    zip_code: int = Field(primary_key=True)
-    
-    # Additional metadata fields
-    # estimated_delivery_days: int = Field(default=3)
-    # surcharge: float = Field(default=0.0)
-    # active: bool = Field(default=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    full_name = Column(String(255))
+    bio = Column(String(1000))
+    avatar_url = Column(String(255))
+    phone_number = Column(String(20))
+    address = Column(String(500))
+    # preferences = Column(MutableDict.as_mutable(JSONB), default={}) //sqlite 지원 안함
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    delivery_partners: list[DeliveryPartner] = Relationship(
-        back_populates="servicable_locations",
-        link_model=ServicableLocation,
-        sa_relationship_kwargs={"lazy": "immediate"},
+    # One-to-one relationship with User
+    user: Mapped["User"] = relationship(
+        "User", backref=backref("profile", uselist=False, cascade="all, delete-orphan")
+    )
+
+    def __repr__(self) -> str:
+        return f"UserProfile(id={self.id}, user_id={self.user_id}, full_name={self.full_name})"
+
+    __table_args__ = (Index("idx_user_profiles_user_id", "user_id"),)
+
+
+# 1:N Relationship - Posts
+class Post(Base):
+    __tablename__ = "posts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    content: Mapped[str] = mapped_column(String(10000), nullable=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+    # tags: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSONB), default=[]) // sqlite 지원 안함
+    view_count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Many-to-one relationship with User (using dynamic loading)
+    user_posts: Mapped["User"] = relationship("User", back_populates="posts_user")
+
+    def __repr__(self) -> str:
+        return f"Post(id={self.id}, user_id={self.user_id}, title={self.title})"
+
+    __table_args__ = (
+        Index("idx_posts_user_id", "user_id"),
+        Index("idx_posts_created_at", "created_at"),
+        Index(
+            "idx_posts_user_id_created_at", "user_id", "created_at"
+        ),  # Composite index
     )
 
 
-class Review(SQLModel, table=True):
-    __tablename__ = "review"
+# N:M Relationship - Users and Groups
+# Association table for many-to-many relationship
+# N:M Association Table (중간 테이블)
+class UserGroupAssociation(Base):
+    __tablename__ = "user_group_association"
 
-    id: UUID = Field(
-        sa_column=Column(
-            postgresql.UUID,
-            default=uuid4,
-            primary_key=True,
-        )
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at: datetime = Field(
-        sa_column=Column(
-            postgresql.TIMESTAMP,
-            default=datetime.now,
-        )
+    group_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True
     )
 
-    rating: int = Field(ge=1, le=5)
-    comment: str | None = Field(default=None)
+    # # 관계 정의
+    # user: Mapped["User"] = relationship("User", back_populates="user_groups")
+    # group: Mapped["Group"] = relationship("Group", back_populates="group_users")
+    # # 복합 기본 키 설정
 
-    shipment_id: UUID = Field(foreign_key="shipment.id")
-    shipment: Shipment = Relationship(
-        back_populates="review",
-        sa_relationship_kwargs={"lazy": "selectin"},
+    # 기본 키 설정을 위한 __table_args__ 추가
+    __table_args__ = (PrimaryKeyConstraint("user_id", "group_id"),)
+
+    def __repr__(self) -> str:
+        return f"UserGroupAssociation(user_id={self.user_id}, group_id={self.group_id})"
+
+
+# Group 테이블
+class Group(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    description: Mapped[str] = mapped_column(String(1000))
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    user_group: Mapped[list["User"]] = relationship(
+        "User",
+        secondary="user_group_association",
+        back_populates="group_user",
+        lazy="selectin",
+    )
+
+    # Group을 만든 사용자와 관계 (일반적인 1:N 관계)
+    def __repr__(self) -> str:
+        return f"Group(id={self.id}, name={self.name})"
+
+    __table_args__ = (
+        Index("idx_groups_name", "name"),
+        Index("idx_groups_is_public", "is_public"),
+        Index("idx_groups_created_at", "created_at"),
+        Index("idx_groups_composite", "is_public", "created_at"),
     )

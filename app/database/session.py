@@ -18,12 +18,12 @@ engine = create_async_engine(
     max_overflow=10,
     pool_timeout=5,
     pool_recycle=3600,
-    # pool_pre_ping=True,
-    # pool_reset_on_return="rollback",
-    # connect_args={
-    #     "connect_timeout": 3,
-    #     "charset": "utf8mb4",
-    # },
+    pool_pre_ping=True,
+    pool_reset_on_return="rollback",
+    connect_args={
+        "connect_timeout": 3,
+        "charset": "utf8mb4",
+    },
 )
 
 # Async sessionmaker 생성
