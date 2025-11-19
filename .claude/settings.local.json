@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(uv run pytest:*)",
+      "Bash(cat:*)",
+      "Bash(pytest:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

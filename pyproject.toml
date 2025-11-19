@@ -1,0 +1,49 @@
+[project]
+name = "poc-fastapi-template-jinja2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiomysql>=0.3.2",
+    "alembic>=1.17.2",
+    "fastapi-cli>=0.0.16",
+    "fastapi[standard]>=0.121.2",
+    "pydantic-settings>=2.12.0",
+    "redis>=7.0.1",
+    "ruff>=0.14.5",
+    "scalar-fastapi>=1.4.3",
+    "sqlalchemy[asyncio]>=2.0.44",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "pytest-asyncio>=0.25.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = "."
+testpaths = ["app"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+# 상세한 출력 설정
+addopts = [
+    "-v",                          # verbose: 각 테스트 이름 출력
+    "-s",                          # stdout/stderr 출력 표시 (print 문 등)
+    "--tb=short",                  # traceback을 짧게 표시
+    "--strict-markers",            # 등록되지 않은 마커 사용 시 에러
+    "--disable-warnings",          # 경고 메시지 숨김 (선택사항)
+]
+
+# 테스트 파일 패턴
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# 로그 레벨 설정 (선택사항)
+# log_cli = true                     # 실시간 로그 출력
+# log_cli_level = "INFO"             # 로그 레벨
+# log_cli_format = "%(asctime)s [%(levelname)s] %(message)s"
+# log_cli_date_format = "%Y-%m-%d %H:%M:%S"
