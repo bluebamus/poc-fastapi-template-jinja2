@@ -1,4 +1,7 @@
-﻿# SQLAlchemy 2.0 완벽 가이드 매뉴얼
+# -*- coding: utf-8 -*-
+import codecs
+
+content = """# SQLAlchemy 2.0 완벽 가이드 매뉴얼
 
 이 문서는 SQLAlchemy 2.0의 주요 기능과 실무 사용법을 정리한 매뉴얼입니다.
 
@@ -507,7 +510,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class Customer(Base):
-    """고객 테이블 - 복합 기본 키 사용"""
+    \"\"\"고객 테이블 - 복합 기본 키 사용\"\"\"
     __tablename__ = "customers"
 
     # 복합 기본 키
@@ -567,7 +570,7 @@ class Customer(Base):
 from decimal import Decimal
 
 class Product(Base):
-    """상품 테이블"""
+    \"\"\"상품 테이블\"\"\"
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -602,7 +605,7 @@ class Product(Base):
 
 ```python
 class Order(Base):
-    """주문 테이블"""
+    \"\"\"주문 테이블\"\"\"
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -648,7 +651,7 @@ class Order(Base):
 
 ```python
 class OrderItem(Base):
-    """주문 항목 - Order와 Product의 N:M 관계"""
+    \"\"\"주문 항목 - Order와 Product의 N:M 관계\"\"\"
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -817,3 +820,11 @@ posts = relationship("Post", lazy="dynamic")
 - 인덱스는 조회 성능을 향상시키지만 쓰기 성능은 저하시킬 수 있습니다
 - 제약 조건은 데이터 무결성을 보장하는 가장 확실한 방법입니다
 
+"""
+
+# UTF-8-SIG 인코딩으로 저장 (BOM 포함)
+with codecs.open('table.md', 'w', 'utf-8-sig') as f:
+    f.write(content)
+
+print("File created successfully")
+print(f"Size: {len(content)} bytes")

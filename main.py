@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.admin_manager import init_admin
 from app.core.common import lifespan
+from app.database.session import engine
 from app.home.api.routers.v1.router import router as home_router
 from app.lyrics.api.routers.v1.router import router as lyrics_router
 from app.utils.cors import CustomCORSMiddleware
@@ -15,7 +17,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# init_admin(app, engine)
+init_admin(app, engine)
 
 custom_cors_middleware = CustomCORSMiddleware(app)
 custom_cors_middleware.configure_cors()

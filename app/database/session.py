@@ -23,6 +23,7 @@ engine = create_async_engine(
     connect_args={
         "connect_timeout": 3,
         "charset": "utf8mb4",
+        # "allow_public_key_retrieval": True,
     },
 )
 
@@ -36,9 +37,21 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def create_db_tables():
     async with engine.begin() as connection:
-        # from app.database.models import Seller, Shipment  # noqa: F401
+        from app.lyrics.models import (  # noqa: F401
+            Attribute,
+            PromptTemplate,
+            SongResultsAll,
+            SongSample,
+            StoreDefaultInfo,
+        )
 
-        await connection.run_sync(Base.metadata.create_all)
+        print("Creating database tables...")
+
+        import asyncio
+
+        async with asyncio.timeout(10):
+            async with engine.begin() as connection:
+                await connection.run_sync(Base.metadata.create_all)
 
 
 # FastAPI 의존성용 세션 제너레이터
