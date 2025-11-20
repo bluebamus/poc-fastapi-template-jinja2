@@ -16,7 +16,10 @@ class LyricsStoreDefaultInfoAdmin(ModelView, model=StoreDefaultInfo):
     category = "상가 정보 관리"
     page_size = 20
 
-    column_list = "__all__"
+    column_list = ["id", "store_name"]
+
+    # 폼(생성/수정)에서 제외
+    form_excluded_columns = ["created_at"]
 
     column_searchable_list = [
         StoreDefaultInfo.store_name,
@@ -47,7 +50,10 @@ class LyricsAttributeAdmin(ModelView, model=Attribute):
     category = "속성 관리"
     page_size = 20
 
-    column_list = "__all__"
+    column_list = ["id", "attr_category"]
+
+    # 폼(생성/수정)에서 제외
+    form_excluded_columns = ["created_at"]
 
     column_searchable_list = [
         Attribute.attr_category,
@@ -68,7 +74,17 @@ class LyricsSongSampleAdmin(ModelView, model=SongSample):
     category = "가사 샘플 관리"
     page_size = 20
 
-    column_list = "__all__"
+    column_list = [
+        "id",
+        "ai_model",
+        "season",
+        "num_of_people",
+        "people_category",
+        "genre",
+    ]
+
+    # 폼(생성/수정)에서 제외
+    form_excluded_columns = ["created_at"]
 
     column_default_sort = (SongSample.created_at, False)  # False: ASC, True: DESC
 
@@ -80,7 +96,13 @@ class LyricsPromptTemplateAdmin(ModelView, model=PromptTemplate):
     category = "프롬프트 템플릿 관리"
     page_size = 20
 
-    column_list = "__all__"
+    column_list = [
+        "id",
+        "description",
+    ]
+
+    # 폼(생성/수정)에서 제외
+    form_excluded_columns = ["created_at"]
 
     column_default_sort = (PromptTemplate.created_at, False)  # False: ASC, True: DESC
 
@@ -92,7 +114,13 @@ class LyricsSongResultsAllAdmin(ModelView, model=SongResultsAll):
     category = "가사 결과 관리"
     page_size = 20
 
-    column_list = "__all__"
+    column_list = [
+        "id",
+        "store_name",
+    ]
+
+    # 폼(생성/수정)에서 제외
+    form_excluded_columns = ["created_at"]
 
     column_searchable_list = [
         SongResultsAll.ai,
