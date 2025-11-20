@@ -53,6 +53,12 @@ class StoreDefaultInfo(Base):
         nullable=True,
     )
 
+    store_region: Mapped[str] = mapped_column(
+        String(255),
+        unique=False,
+        nullable=True,
+    )
+
     store_address: Mapped[str] = mapped_column(
         String(255),
         unique=False,
