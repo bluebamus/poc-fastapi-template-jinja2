@@ -28,8 +28,4 @@ async def home(
     conn: AsyncSession = Depends(get_session),
 ):
     print("session_user:")
-
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-    )
+    return templates.TemplateResponse(request=request, name="home.html", context={})
